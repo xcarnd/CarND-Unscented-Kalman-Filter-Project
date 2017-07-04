@@ -303,7 +303,7 @@ void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
     // normalizing phi
     while (phi >  M_PI) phi -= 2. * M_PI;
     while (phi < -M_PI) phi += 2. * M_PI;
-    double rho_dot = px * v * sin(yaw) + py * v * cos(yaw) / rho;
+    double rho_dot = (px * v * cos(yaw) + py * v * sin(yaw)) / rho;
 
     Zsig_pred.col(i) << rho, phi, rho_dot;
     z = z + weights_(i) * Zsig_pred.col(i);
