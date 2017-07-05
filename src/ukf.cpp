@@ -24,10 +24,10 @@ UKF::UKF() {
   P_ = MatrixXd(5, 5);
 
   // Process noise standard deviation longitudinal acceleration in m/s^2
-  std_a_ = 3;
+  std_a_ = 0.35;
 
   // Process noise standard deviation yaw acceleration in rad/s^2
-  std_yawdd_ = 1;
+  std_yawdd_ = 0.35;
 
   // Laser measurement noise standard deviation position1 in m
   std_laspx_ = 0.15;
@@ -76,6 +76,13 @@ UKF::UKF() {
   R_radar_(0, 0) = std_radr_ * std_radr_;
   R_radar_(1, 1) = std_radphi_ * std_radphi_;
   R_radar_(2, 2) = std_radrd_ * std_radrd_;
+
+  num_lidar_updates_ = 0;
+  num_radar_updates_ = 0;
+  num_lidar_above_limit_ = 0;
+  num_radar_above_limit_ = 0;
+  chi_square_lidar_ = 5.991;
+  chi_square_radar_ = 7.815;
 }
 
 UKF::~UKF() {}
@@ -267,6 +274,13 @@ void UKF::UpdateLidar(const MeasurementPackage& meas_package) {
 
   // NIS epsilon
   double epsilon = (z_diff.transpose() * S.inverse() * z_diff)(0,0);
+  if (epsilon > chi_square_lidar_) {
+    ++num_lidar_above_limit_;
+  }
+  ++num_lidar_updates_;
+
+  std::cout<<"(NIS > "<<chi_square_lidar_<<")%: "
+	   <<((double) num_lidar_above_limit_ / num_lidar_updates_)<<std::endl;
 }
 
 /**
@@ -337,6 +351,13 @@ void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
 
   // NIS epsilon
   double epsilon = (z_diff.transpose() * S.inverse() * z_diff)(0,0);
+  if (epsilon > chi_square_radar_) {
+    ++num_radar_above_limit_;
+  }
+  ++num_radar_updates_;
+
+  std::cout<<"(NIS > "<<chi_square_radar_<<")%: "
+	   <<((double) num_radar_above_limit_ / num_radar_updates_)<<std::endl;
 }
 
   /**
