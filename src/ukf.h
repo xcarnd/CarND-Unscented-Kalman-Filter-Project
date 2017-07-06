@@ -73,6 +73,24 @@ public:
   ///* Radar measurement covariance matrix noise
   MatrixXd R_radar_;
 
+  ///* chi-square limit for lidar update
+  double chi_square_lidar_;
+
+  ///* total number of lidar updates
+  int num_lidar_updates_;
+
+  ///* number of lidar updates with nis > chi-square limit
+  int num_lidar_above_limit_;
+
+  ///* chi-square limit for radar update
+  double chi_square_radar_;
+
+  ///* total number of radar updates
+  int num_radar_updates_;
+
+  ///* number of radar updates with nis > chi-square limit
+  int num_radar_above_limit_;
+
   /**
    * Constructor
    */
