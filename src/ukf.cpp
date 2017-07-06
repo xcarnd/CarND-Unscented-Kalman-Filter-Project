@@ -71,6 +71,12 @@ UKF::UKF() {
   // predicted sigma points matrix will be a `n_x_ x (2 * n_aug_ + 1) ` matrix
   Xsig_pred_ = MatrixXd(n_x_, 2 * n_aug_ + 1);
 
+  // Lidar measurement transform matrix
+  // H = 1, 0, 0, 0, 0
+  //     0, 1, 0, 0, 0
+  H_lidar_ = MatrixXd(2, 5);
+  H_lidar_.topLeftCorner(2, 2).setIdentity();
+
   // measurement covariance noise
   R_lidar_ = MatrixXd(2, 2);
   R_lidar_.fill(0.0);
@@ -243,43 +249,22 @@ void UKF::UpdateLidar(const MeasurementPackage& meas_package) {
   
   ComputePredictedMeanAndCovarianceMatrix(x, P);
 
-  // use sigma points to generate sigma points in measurement space
-  MatrixXd Zsig_pred(2, Xsig_pred_.cols());
-  VectorXd z(2);
-  MatrixXd S(2, 2);
-  Zsig_pred.fill(0.0);
-  z.fill(0.0);
-  S.fill(0.0);
+  // measurement update of lidar is linear. No need to do another unscented transform
+  // since that's more computational expensive
 
-  // lidar measurement contains only px and py. Simply discarded the last 3 elements
-  // of the vector and we can get the predicted measurement
-  for (int i = 0; i < Xsig_pred_.cols(); ++i) {
-    Zsig_pred.col(i) = Xsig_pred_.col(i).head(2);
-    z = z + weights_(i) * Zsig_pred.col(i);
-  }
-  for (int i = 0; i < Zsig_pred.cols(); ++i) {
-    VectorXd diffz = Zsig_pred.col(i) - z;
-    S = S + weights_(i) * diffz * diffz.transpose();
-  }
-  S = S + R_lidar_;
-  
-  // cross-correlation between sigma points in state space and measurement space
-  MatrixXd T(n_x_, 2);
-  T.fill(0.0);
-  for (int i = 0; i < Xsig_pred_.cols(); ++i) {
-    T = T + weights_(i) * (Xsig_pred_.col(i) - x) * (Zsig_pred.col(i) - z).transpose();
-  }
-
-  // Kalman gain
-  MatrixXd K = T * S.inverse();
-  
-  // update state
+  VectorXd z = H_lidar_ * x;
   VectorXd z_diff = meas_package.raw_measurements_ - z;
+  MatrixXd PHt = P * H_lidar_.transpose();
+  MatrixXd S = H_lidar_ * PHt + R_lidar_;
+  
+  // Kalman gain
+  MatrixXd K = PHt * S.inverse();
+  
   x_ = x + K * z_diff;
-  P_ = P - K * S * K.transpose();
+  P_ = P - K * H_lidar_ * P;
 
   // NIS epsilon
-  double epsilon = (z_diff.transpose() * S.inverse() * z_diff)(0,0);
+  double epsilon = (z_diff.transpose() * S.inverse() * z_diff);
   if (epsilon > chi_square_lidar_) {
     ++num_lidar_above_limit_;
   }
@@ -353,7 +338,7 @@ void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
   P_ = P - K * S * K.transpose();
 
   // NIS epsilon
-  double epsilon = (z_diff.transpose() * S.inverse() * z_diff)(0,0);
+  double epsilon = (z_diff.transpose() * S.inverse() * z_diff);
   if (epsilon > chi_square_radar_) {
     ++num_radar_above_limit_;
   }

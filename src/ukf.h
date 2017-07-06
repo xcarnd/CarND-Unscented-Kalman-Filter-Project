@@ -67,6 +67,9 @@ public:
   ///* Sigma point spreading parameter
   double lambda_;
 
+  ///* Lidar measurement transform matrix
+  MatrixXd H_lidar_;
+
   ///* Lidar measurement covariance matrix noise
   MatrixXd R_lidar_;
 
