@@ -7,6 +7,12 @@ using Eigen::MatrixXd;
 using Eigen::VectorXd;
 using std::vector;
 
+static inline double normalize_angle(double angle) {
+    while (angle >  M_PI) angle -= 2. * M_PI;
+    while (angle < -M_PI) angle += 2. * M_PI;
+    return angle;
+}
+
 /**
  * Initializes Unscented Kalman filter
  */
@@ -315,8 +321,7 @@ void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
     double rho = sqrt(px * px + py * py);
     double phi = atan2(py, px);
     // normalizing phi
-    while (phi >  M_PI) phi -= 2. * M_PI;
-    while (phi < -M_PI) phi += 2. * M_PI;
+    phi = normalize_angle(phi);
     double rho_dot = (px * v * cos(yaw) + py * v * sin(yaw)) / rho;
 
     Zsig_pred.col(i) << rho, phi, rho_dot;
@@ -325,8 +330,7 @@ void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
   for (int i = 0; i < Zsig_pred.cols(); ++i) {
     VectorXd diffz = Zsig_pred.col(i) - z;
     // normalizing phi
-    while (diffz(1) >  M_PI) diffz(1) -= 2. * M_PI;
-    while (diffz(1) < -M_PI) diffz(1) += 2. * M_PI;
+    diffz(1) = normalize_angle(diffz(1));
     S = S + weights_(i) * diffz * diffz.transpose();
   }
   S = S + R_radar_;
@@ -344,8 +348,7 @@ void UKF::UpdateRadar(const MeasurementPackage& meas_package) {
   // update state
   VectorXd z_diff = meas_package.raw_measurements_ - z;
   // normalizing angle
-  while (z_diff(1) >  M_PI) z_diff(1) -= 2. * M_PI;
-  while (z_diff(1) < -M_PI) z_diff(1) += 2. * M_PI;
+  z_diff(1) = normalize_angle(z_diff(1));
   x_ = x + K * z_diff;
   P_ = P - K * S * K.transpose();
 
@@ -373,8 +376,7 @@ void UKF::ComputePredictedMeanAndCovarianceMatrix(VectorXd& x, MatrixXd& P) {
   for (int i = 0; i < Xsig_pred_.cols(); ++i) {
     VectorXd diffx = Xsig_pred_.col(i) - x;
     // normalizing angle
-    while (diffx(3) >  M_PI) diffx(3) -= 2. * M_PI;
-    while (diffx(3) < -M_PI) diffx(3) += 2. * M_PI;
+    diffx(3) = normalize_angle(diffx(3));
     P = P + weights_(i) * diffx * diffx.transpose();
   }
 }
